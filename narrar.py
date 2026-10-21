@@ -9,6 +9,7 @@ Uso:
 import argparse
 import os
 import re
+import shutil
 import sys
 import unicodedata
 import warnings
@@ -23,6 +24,20 @@ VOZ_PADRAO = RAIZ / "voz" / "minha_voz.pt"
 SAIDA_PADRAO = RAIZ / "saida"
 PRONUNCIA = RAIZ / "pronuncia.txt"
 EXTENSOES = {".txt", ".md"}
+
+
+def garantir_ffmpeg():
+    """Põe o ffmpeg estático do imageio-ffmpeg ao lado do Python da venv, se não houver um no PATH."""
+    if shutil.which("ffmpeg"):
+        return
+    import imageio_ffmpeg
+
+    origem = Path(imageio_ffmpeg.get_ffmpeg_exe())
+    destino = Path(sys.executable).parent / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+    try:
+        destino.symlink_to(origem)
+    except OSError:  # Windows sem permissão para symlink
+        shutil.copy2(origem, destino)
 
 
 def carregar_modelo():
@@ -147,10 +162,12 @@ def salvar(audio, taxa, destino):
     import subprocess
     import tempfile
 
-    with tempfile.NamedTemporaryFile(suffix=".wav") as tmp:
-        sf.write(tmp.name, audio, taxa)
+    # Diretório temporário em vez de NamedTemporaryFile: no Windows o arquivo aberto não pode ser reaberto.
+    with tempfile.TemporaryDirectory() as tmp:
+        wav = os.path.join(tmp, "audio.wav")
+        sf.write(wav, audio, taxa)
         subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", tmp.name, "-codec:a", "libmp3lame", "-q:a", "2", str(destino)],
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-codec:a", "libmp3lame", "-q:a", "2", str(destino)],
             check=True,
         )
 
@@ -221,6 +238,7 @@ def main():
     g.set_defaults(func=cmd_gerar)
 
     args = ap.parse_args()
+    garantir_ffmpeg()
     args.func(args)
 
 
