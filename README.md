@@ -5,17 +5,112 @@ localmente na GPU.
 
 ## Instalação
 
-Precisa de GPU NVIDIA com CUDA (testado numa RTX 3050 de 8 GB, Linux/WSL2), [uv](https://docs.astral.sh/uv/)
-e Python 3.12 (o torch 2.8 não roda no 3.14).
+### Requisitos
 
+- **GPU NVIDIA** com pelo menos 6 GB de memória (testado numa RTX 3050 de 8 GB). Não roda só na CPU.
+- **Driver NVIDIA** atualizado (versão 570 ou mais nova, para CUDA 12.8). O CUDA Toolkit não precisa ser instalado: ele vem junto com o torch.
+- **Git**, para baixar o projeto.
+- **uv**, que instala o Python 3.12 e as dependências. O torch 2.8 não funciona no Python 3.13+, e o uv baixa
+  o 3.12 sozinho, sem mexer no Python do sistema.
+- Cerca de **10 GB livres**: uns 7 GB do ambiente Python, mais os modelos baixados na primeira execução.
+
+O ffmpeg não precisa ser instalado: o projeto usa o executável que vem no pacote `imageio-ffmpeg`.
+
+### Linux (Ubuntu/Debian; vale também para o WSL2 no Windows)
+
+**1. Confira se a GPU aparece.** Deve mostrar o nome da placa e a versão do driver:
+```bash
+nvidia-smi
+```
+Se o comando não existir, instale o driver: `sudo ubuntu-drivers install` e reinicie.
+No WSL2, o driver é o do Windows; não instale driver dentro do Linux.
+
+**2. Instale o git e o uv:**
+```bash
+sudo apt update && sudo apt install -y git curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc        # ou feche e abra o terminal, para o comando uv aparecer
+```
+
+**3. Baixe o projeto:**
+```bash
+git clone https://github.com/lisboamab/narrador085.git
+cd narrador085
+```
+
+**4. Crie o ambiente Python 3.12 e instale as dependências** (demora alguns minutos, baixa uns 3 GB):
 ```bash
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -r requirements.txt
-# ffmpeg estático do imageio-ffmpeg, no PATH da venv (pydub e librosa o procuram lá)
+```
+
+**5. Coloque o ffmpeg dentro da venv** (o `narrar.py` procura ele lá):
+```bash
 ln -s "$(.venv/bin/python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" .venv/bin/ffmpeg
 ```
 
-Na primeira execução são baixados os modelos `k2-fsa/OmniVoice` e `openai/whisper-large-v3-turbo` do Hugging Face.
+**6. Teste.** Deve imprimir `2.8.0+cu128 True NVIDIA GeForce ...`:
+```bash
+.venv/bin/python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+.venv/bin/python narrar.py gerar posts/ --mostrar-texto
+```
+Se aparecer `False`, o torch não está vendo a GPU: confira o passo 1.
+
+### Windows (PowerShell)
+
+Abra o **PowerShell** (não precisa ser como administrador).
+
+**1. Confira se a GPU aparece:**
+```powershell
+nvidia-smi
+```
+Se der erro, instale o driver mais recente em https://www.nvidia.com/pt-br/drivers/ e reinicie.
+
+**2. Instale o git e o uv:**
+```powershell
+winget install --id Git.Git -e
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+Feche e abra o PowerShell, para os comandos `git` e `uv` aparecerem.
+
+**3. Baixe o projeto:**
+```powershell
+git clone https://github.com/lisboamab/narrador085.git
+cd narrador085
+```
+
+**4. Crie o ambiente Python 3.12 e instale as dependências:**
+```powershell
+uv venv --python 3.12 .venv
+uv pip install --python .venv\Scripts\python.exe -r requirements.txt
+```
+
+**5. Copie o ffmpeg para dentro da venv** (no Windows usamos cópia em vez de atalho, que exigiria administrador):
+```powershell
+Copy-Item (.venv\Scripts\python.exe -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") .venv\Scripts\ffmpeg.exe
+```
+
+**6. Teste:**
+```powershell
+.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+.venv\Scripts\python.exe narrar.py gerar posts\ --mostrar-texto
+```
+
+> **No Windows, em todos os comandos abaixo** troque `.venv/bin/python` por `.venv\Scripts\python.exe`
+> e use `\` nos caminhos (`posts\`, `voz\fulano.pt`).
+
+### Primeira execução
+
+Na primeira vez que você rodar `narrar.py voz` ou `narrar.py gerar`, os modelos `k2-fsa/OmniVoice` e
+`openai/whisper-large-v3-turbo` são baixados do Hugging Face (alguns GB, só uma vez). Eles ficam em
+`~/.cache/huggingface` (Linux) ou `%USERPROFILE%\.cache\huggingface` (Windows).
+
+### Problemas comuns
+
+- **`torch.cuda.is_available()` dá `False`**: driver ausente ou antigo; atualize e reinicie.
+- **`CUDA out of memory`**: feche jogos ou programas que usam a GPU; posts muito longos podem ser divididos em arquivos menores.
+- **`Couldn't find ffmpeg`**: o passo 5 não foi feito, ou foi feito antes do passo 4.
+- **`uv: command not found`**: feche e abra o terminal depois de instalar o uv.
 
 ## 1. Gravar a voz (uma vez)
 
