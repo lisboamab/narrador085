@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+
+# Dados pessoais: gravações, perfis de voz, áudios gerados e posts
+voz/*
+!voz/.gitkeep
+saida/*
+!saida/.gitkeep
+posts/*
+!posts/exemplo.md

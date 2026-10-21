@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.8.0
+torchaudio==2.8.0
+omnivoice==0.2.1
+transformers==5.20.2
+librosa==1.0.0
+soundfile==0.14.0
+pydub==0.25.1
+num2words==0.5.14
+imageio-ffmpeg==0.6.0

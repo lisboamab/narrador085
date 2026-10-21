@@ -1,0 +1,12 @@
+# Como falar termos que o modelo leria errado. Uma regra por linha: termo = como falar
+# Vale para a palavra inteira, sem diferenciar maiúsculas. Aplicado antes de converter números.
+085Tec = zero oito cinco Tec
+085 = zero oito cinco
+IA = I A
+TI = T I
+API = A P I
+SaaS = sás
+app = ép
+apps = éps
+WhatsApp = uatsap
+Rails = rêils
